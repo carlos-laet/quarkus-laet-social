@@ -1,8 +1,12 @@
 package com.desenvlaet.laetsocial.rest.dto;
 
+import lombok.Data;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+
+@Data
 public class CreateUserRequest {
 
     @NotBlank(message = "Name is required")
@@ -10,20 +14,4 @@ public class CreateUserRequest {
 
     @NotNull(message = "Age is required")
     private Integer age;
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
 }
