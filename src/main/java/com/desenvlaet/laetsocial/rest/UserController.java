@@ -3,14 +3,18 @@ package com.desenvlaet.laetsocial.rest;
 import com.desenvlaet.laetsocial.model.User;
 import com.desenvlaet.laetsocial.repository.UserRepository;
 import com.desenvlaet.laetsocial.rest.dto.CreateUserRequest;
+import com.desenvlaet.laetsocial.rest.dto.ResponseError;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validator;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Set;
 
 @Path("/users")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -18,15 +22,24 @@ import javax.ws.rs.core.Response;
 public class UserController {
 
     private UserRepository repository;
+    private Validator validator;
 
     @Inject
-    public UserController(UserRepository repository) {
+    public UserController(UserRepository repository, Validator validator) {
         this.repository = repository;
+        this.validator = validator;
     }
 
     @POST
     @Transactional
     public Response createUser(CreateUserRequest userRequest) {
+
+        Set<ConstraintViolation<CreateUserRequest>> violations = validator.validate(userRequest);
+        if (!violations.isEmpty()) {
+            ResponseError responseError = ResponseError.createFromValidation(violations);
+            return Response.status(400).entity(responseError).build();
+        }
+
         User user = new User();
         user.setAge(userRequest.getAge());
         user.setName(userRequest.getName());
