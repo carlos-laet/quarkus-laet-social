@@ -2,6 +2,7 @@ package com.desenvlaet.laetsocial.rest;
 
 import com.desenvlaet.laetsocial.model.Post;
 import com.desenvlaet.laetsocial.model.User;
+import com.desenvlaet.laetsocial.repository.FollowerRepository;
 import com.desenvlaet.laetsocial.repository.PostRepository;
 import com.desenvlaet.laetsocial.repository.UserRepository;
 import com.desenvlaet.laetsocial.rest.dto.CreatePostRequest;
@@ -22,11 +23,13 @@ public class PostController {
 
     private UserRepository userRepository;
     private PostRepository repository;
+    private FollowerRepository followerRepository;
 
     @Inject
-    public PostController(UserRepository userRepository, PostRepository repository) {
+    public PostController(UserRepository userRepository, PostRepository repository, FollowerRepository followerRepository) {
         this.userRepository = userRepository;
         this.repository = repository;
+        this.followerRepository = followerRepository;
     }
 
     @POST
@@ -47,10 +50,26 @@ public class PostController {
     }
 
     @GET
-    public Response listPosts(@PathParam("userId") Long userId) {
+    public Response listPosts(@PathParam("userId") Long userId, @HeaderParam("followerId") Long followerId) {
         User user = userRepository.findById(userId);
         if(user == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        if (followerId == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("You forgot the header followerId").build();
+        }
+
+        User follower = userRepository.findById(followerId);
+
+        if (follower  == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Inexistent followerId").build();
+        }
+
+        boolean followers = followerRepository.followers(follower, user);
+
+        if (!followers) {
+            return Response.status(Response.Status.FORBIDDEN).entity("You can't see these posts").build();
         }
 
         var query = repository.find("user", Sort.by("dateTime", Sort.Direction.Descending), user);
@@ -58,6 +77,6 @@ public class PostController {
 
         var postResposeList = list.stream().map(PostResponse::fromEntity).collect(Collectors.toList());
 
-        return Response.ok(list).build();
+        return Response.ok(postResposeList).build();
     }
 }
